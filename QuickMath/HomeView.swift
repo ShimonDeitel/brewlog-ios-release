@@ -108,7 +108,7 @@ struct HomeView: View {
                                 Text("No brews yet")
                                     .font(.headline)
                                     .foregroundStyle(.secondary)
-                                Text("Tap "Log a Brew" to dial in your first cup.")
+                                Text("Tap \"Log a Brew\" to dial in your first cup.")
                                     .font(.subheadline)
                                     .foregroundStyle(.tertiary)
                                     .multilineTextAlignment(.center)
