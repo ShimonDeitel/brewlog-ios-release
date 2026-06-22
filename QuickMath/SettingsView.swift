@@ -6,101 +6,119 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("quickmath.theme") private var themeRaw = AppTheme.system.rawValue
-
     @State private var showPaywall = false
     @State private var showDeleteConfirm = false
-
-    private var theme: Binding<AppTheme> {
-        Binding(
-            get: { AppTheme(rawValue: themeRaw) ?? .system },
-            set: { themeRaw = $0.rawValue }
-        )
-    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 QMBackground()
-
                 List {
                     // Pro section
                     Section("Subscription") {
                         if store.isPro {
                             HStack {
-                                Text("Tideline Pro")
-                                Spacer()
-                                Text("Active")
+                                Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(Color.qmCorrect)
-                                    .font(.subheadline.weight(.medium))
+                                Text("BrewLog Pro — Active")
+                                    .font(.subheadline.weight(.semibold))
                             }
-                            Link("Manage Subscription",
-                                 destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
-                                .foregroundStyle(Color.qmAccent)
-                        } else {
-                            Button("Unlock Tideline Pro") {
-                                showPaywall = true
+                            Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
+                                HStack {
+                                    Text("Manage Subscription")
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             .foregroundStyle(Color.qmAccent)
+                        } else {
+                            Button {
+                                showPaywall = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "star.fill")
+                                        .foregroundStyle(Color.qmAccent)
+                                    Text("Unlock BrewLog Pro")
+                                        .foregroundStyle(Color.qmAccent)
+                                }
+                            }
+                            Button("Restore Purchase") {
+                                Task { await store.restore() }
+                            }
+                            .foregroundStyle(.secondary)
                         }
-
-                        Button("Restore Purchase") {
-                            Task { await store.restore() }
-                        }
-                        .foregroundStyle(Color.qmAccent)
                     }
 
                     // Appearance
                     Section("Appearance") {
-                        Picker("Theme", selection: theme) {
-                            ForEach(AppTheme.allCases) { t in
-                                Text(t.label).tag(t)
+                        Picker("Theme", selection: $themeRaw) {
+                            ForEach(AppTheme.allCases) { theme in
+                                Text(theme.label).tag(theme.rawValue)
                             }
                         }
                         .pickerStyle(.segmented)
                     }
 
-                    // Legal
-                    Section("Legal") {
-                        Link("Privacy Policy",
-                             destination: URL(string: "https://shimondeitel.github.io/tideline-site/privacy.html")!)
-                            .foregroundStyle(Color.qmAccent)
-                        Link("Terms of Use",
-                             destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                            .foregroundStyle(Color.qmAccent)
+                    // Links
+                    Section("About") {
+                        Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                            HStack {
+                                Text("Terms of Use")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        Link(destination: URL(string: "https://shimondeitel.github.io/brewlog-site/privacy.html")!) {
+                            HStack {
+                                Text("Privacy Policy")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .foregroundStyle(.primary)
                     }
 
-                    // Data
-                    Section("Data") {
-                        Button("Delete All Data") {
+                    // Danger zone
+                    Section {
+                        Button(role: .destructive) {
                             showDeleteConfirm = true
+                        } label: {
+                            Text("Delete All Data")
                         }
-                        .foregroundStyle(Color.qmWrong)
                     }
                 }
-                .scrollContentBackground(.hidden)
+                .listStyle(.insetGrouped)
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Color.qmAccent)
                 }
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
-                    .environmentObject(store)
             }
             .confirmationDialog(
-                "Delete all Tideline data?",
+                "Delete All Data?",
                 isPresented: $showDeleteConfirm,
                 titleVisibility: .visible
             ) {
                 Button("Delete All", role: .destructive) {
+                    Haptics.warning()
                     appModel.deleteAllData()
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This removes all your logged energy entries and cannot be undone.")
+                Text("This will permanently delete all your logged brews and bean data.")
             }
         }
     }
